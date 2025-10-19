@@ -1,5 +1,8 @@
 # Slorpit
 
+> [!WARNING]
+> An AI wrote this. It works, but don't run it on anything you didn't create yourself.
+
 **Using PDF as an archive format. Yes, really.**
 
 Slorpit is a command-line archiver that stores files in PDF format. It's technically sound, actually works, and compresses well. Is it cursed? Absolutely. Does it work? Surprisingly well.
