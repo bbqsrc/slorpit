@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use lopdf::{Document, ObjectId};
 use slorpit::{ArchiveCatalog, CATALOG_KEY};
 use std::fs;
@@ -14,11 +14,7 @@ fn main() -> Result<()> {
     }
 
     let input_path = &args[1];
-    let output_dir = if args.len() >= 3 {
-        &args[2]
-    } else {
-        "."
-    };
+    let output_dir = if args.len() >= 3 { &args[2] } else { "." };
 
     println!("Extracting PDF archive: {}", input_path);
 
@@ -58,25 +54,25 @@ fn main() -> Result<()> {
         file.write_all(&content)?;
 
         if let Some(modified) = file_entry.modified {
-            let time = std::time::SystemTime::UNIX_EPOCH
-                + std::time::Duration::from_secs(modified);
-            let _ = filetime::set_file_mtime(&file_path, filetime::FileTime::from_system_time(time));
+            let time = std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(modified);
+            let _ =
+                filetime::set_file_mtime(&file_path, filetime::FileTime::from_system_time(time));
         }
     }
 
-    println!("Successfully extracted {} files to {}", catalog.files.len(), output_dir);
+    println!(
+        "Successfully extracted {} files to {}",
+        catalog.files.len(),
+        output_dir
+    );
 
     Ok(())
 }
 
 fn find_catalog_id(doc: &Document) -> Result<ObjectId> {
     let trailer = &doc.trailer;
-    let root_obj = trailer
-        .get(b"Root")
-        .context("No Root in PDF trailer")?;
-    let root_id = root_obj
-        .as_reference()
-        .context("Root is not a reference")?;
+    let root_obj = trailer.get(b"Root").context("No Root in PDF trailer")?;
+    let root_id = root_obj.as_reference().context("Root is not a reference")?;
 
     let root = doc
         .get_object(root_id)
@@ -103,9 +99,13 @@ fn extract_catalog(doc: &Document, catalog_id: ObjectId) -> Result<ArchiveCatalo
         .as_stream()
         .map_err(|e| anyhow!("Catalog is not a stream: {}", e))?;
 
-    let content = stream.decompressed_content()?;
-    let catalog: ArchiveCatalog = serde_json::from_slice(&content)
-        .with_context(|| "Failed to parse catalog JSON")?;
+    let content = if stream.dict.get(b"Filter").is_ok() {
+        stream.decompressed_content()?
+    } else {
+        stream.content.clone()
+    };
+    let catalog: ArchiveCatalog =
+        serde_json::from_slice(&content).with_context(|| "Failed to parse catalog JSON")?;
 
     Ok(catalog)
 }
@@ -125,7 +125,7 @@ fn find_file_streams(doc: &Document) -> Result<Vec<ObjectId>> {
         }
     }
 
-    file_streams.sort_by_key(|(id, gen)| (*id, *gen));
+    file_streams.sort_by_key(|(id, generation)| (*id, *generation));
 
     Ok(file_streams)
 }
@@ -139,7 +139,8 @@ fn extract_file_content(doc: &Document, object_id: ObjectId) -> Result<Vec<u8>> 
         .as_stream()
         .map_err(|e| anyhow!("Object is not a stream: {:?}: {}", object_id, e))?;
 
-    let content = stream.decompressed_content()
+    let content = stream
+        .decompressed_content()
         .with_context(|| format!("Failed to decompress stream: {:?}", object_id))?;
 
     Ok(content)

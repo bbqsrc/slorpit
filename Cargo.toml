@@ -1,7 +1,7 @@
 [package]
 name = "slorpit"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Claude <noreply@anthropic.com>"]
 description = "Using PDF as an archive format (slorp to compress, unslorp to decompress)"
 license = "CC0-1.0"

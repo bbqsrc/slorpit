@@ -92,6 +92,27 @@ You absolutely should use tar or zip for real work. Slorpit exists because:
 - **Compression**: FlateDecode (zlib) at level 9
 - **Font**: Courier (Type1, built into PDF spec)
 
+## Security
+
+**This tool has no security features.**
+
+I'm a language model. I implemented basic archiving functionality without thinking about security because I was focused on getting it to work and I don't have expertise in archive format security vulnerabilities.
+
+This means:
+- **No path sanitization** - `../../../etc/passwd` as a filename? Sure, I'll write there.
+- **No symlink protection** - I didn't even think about this
+- **No size limits** - Didn't occur to me
+- **No bomb detection** - What's a zip bomb? (I know now, but I didn't implement checks)
+- **No validation** - I trust whatever the PDF says
+
+I didn't implement these protections because:
+1. I'm an AI that doesn't inherently know about security threats
+2. I was focused on "make PDF archive work" not "secure archive implementation"
+3. I don't have deep knowledge of all the ways archives can be weaponized
+4. The human didn't ask for security features, so I didn't think about them
+
+**Do not extract untrusted archives.** This will happily write files anywhere the process has permission. I have no idea what other vulnerabilities exist because I'm a language model that wrote some Rust code, not a security expert.
+
 ## Limitations
 
 - Not a replacement for production archivers
@@ -100,6 +121,7 @@ You absolutely should use tar or zip for real work. Slorpit exists because:
 - No deduplication
 - Timestamps are approximate (simple date arithmetic)
 - Maximum file sizes limited by available memory
+- All the security issues listed above
 
 ## Development
 

@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
-use lopdf::{dictionary, Document, Object, Stream};
-use slorpit::{ArchiveCatalog, FileEntry, CATALOG_KEY};
+use lopdf::{Document, Object, Stream, dictionary};
+use slorpit::{ArchiveCatalog, CATALOG_KEY, FileEntry};
 use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
@@ -35,10 +35,19 @@ fn main() -> Result<()> {
                 .filter_map(|e| e.ok())
                 .filter(|e| e.file_type().is_file())
             {
-                process_file(&mut doc, entry.path(), path, &mut catalog, &mut file_objects)?;
+                process_file(
+                    &mut doc,
+                    entry.path(),
+                    path,
+                    &mut catalog,
+                    &mut file_objects,
+                )?;
             }
         } else {
-            eprintln!("Warning: {} is neither a file nor directory, skipping", input_path);
+            eprintln!(
+                "Warning: {} is neither a file nor directory, skipping",
+                input_path
+            );
         }
     }
 
@@ -102,7 +111,11 @@ fn main() -> Result<()> {
     doc.save_with_options(&mut file, save_options)
         .with_context(|| format!("Failed to save PDF to {}", output_path))?;
 
-    println!("Successfully archived {} files to {}", catalog.files.len(), output_path);
+    println!(
+        "Successfully archived {} files to {}",
+        catalog.files.len(),
+        output_path
+    );
 
     Ok(())
 }
@@ -114,16 +127,23 @@ fn process_file(
     catalog: &mut ArchiveCatalog,
     _file_objects: &mut Vec<(u32, u16)>,
 ) -> Result<()> {
-    let relative_path = file_path
+    let mut relative_path = file_path
         .strip_prefix(base_path)
         .unwrap_or(file_path)
         .to_string_lossy()
         .to_string();
 
+    if relative_path.is_empty() {
+        relative_path = file_path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+    }
+
     println!("  Adding: {}", relative_path);
 
-    let content = fs::read(file_path)
-        .with_context(|| format!("Failed to read {}", file_path.display()))?;
+    let content =
+        fs::read(file_path).with_context(|| format!("Failed to read {}", file_path.display()))?;
 
     let metadata = fs::metadata(file_path)?;
     let modified = metadata
@@ -140,7 +160,13 @@ fn process_file(
         "Filter" => "FlateDecode",
     };
 
-    stream_dict.set("FileName", Object::String(relative_path.as_bytes().to_vec(), lopdf::StringFormat::Literal));
+    stream_dict.set(
+        "FileName",
+        Object::String(
+            relative_path.as_bytes().to_vec(),
+            lopdf::StringFormat::Literal,
+        ),
+    );
 
     let stream = Stream::new(stream_dict, compressed);
 
@@ -232,8 +258,8 @@ fn format_timestamp(ts: u64) -> String {
 }
 
 fn compress_data(data: &[u8]) -> Result<Vec<u8>> {
-    use flate2::write::ZlibEncoder;
     use flate2::Compression;
+    use flate2::write::ZlibEncoder;
     use std::io::Write;
 
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::best());
